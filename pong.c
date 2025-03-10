@@ -1,7 +1,9 @@
 #include <GL/glut.h>
 #include <math.h>
+#include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <time.h>
 
 // display constants
 const int WINDOW_WIDTH = 800;
@@ -17,6 +19,9 @@ const float PLAYER_OFFSET = 20.0f;
 const float ball_radius = 8.0f;
 float ball_x = WINDOW_WIDTH / 2;
 float ball_y = WINDOW_HEIGHT / 2;
+float ball_speed_x = 4.0f;
+float ball_speed_y = 4.0f;
+float ball_acceleration = 0.2f;
 
 // players
 const float player_speed = 5.0f;
@@ -31,12 +36,17 @@ bool special_states[256] = {false};
 int player1_score = 0;
 int player2_score = 0;
 
+bool game_started = false;
+
 void initialize(void);
 void display();
 void draw_ball(float pos_x, float pos_y, float radius, int segments);
 void draw_player(float pos_x, float pos_y);
 void draw_score();
 void update_game();
+void update_ball();
+void reset_ball(bool move_left);
+void start_game(int value);
 void key_pressed(unsigned char key, int x, int y);
 void key_released(unsigned char key, int x, int y);
 void special_pressed(int key, int x, int y);
@@ -66,8 +76,10 @@ int main(int argc, char *argv[])
 
 void initialize(void)
 {
+	srand(time(NULL));
 	glClearColor(0.0, 0.0, 0.0, 0.0);
 	glShadeModel(GL_FLAT);        // don't interpolate colors (efficiency)
+	glutTimerFunc(1000, start_game, 0);
 }
 
 void display()
@@ -110,35 +122,113 @@ void draw_player(float pos_x, float pos_y)
 }
 
 void draw_score() {
-    char score_text[20];
-    sprintf(score_text, "%d : %d", player1_score, player2_score);
-    glColor3f(1.0, 1.0, 1.0);
-    glRasterPos2f(WINDOW_WIDTH/2 - 20, WINDOW_HEIGHT - 20);
-    for (char* c = score_text; *c != '\0'; c++)
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *c);
+	char score_text[20];
+	sprintf(score_text, "%d : %d", player1_score, player2_score);
+	glColor3f(1.0, 1.0, 1.0);
+	glRasterPos2f(WINDOW_WIDTH/2 - 20, WINDOW_HEIGHT - 20);
+	for (char* c = score_text; *c != '\0'; c++)
+		glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *c);
 }
 
 void update_game() {
-    // player 1
-    if (key_states['w'] || key_states['W']) {
-        if (player1_y < WINDOW_HEIGHT - (PLAYER_HEIGHT / 2))
-            player1_y += player_speed;
-    }
-    if (key_states['s'] || key_states['S']) {
-        if (player1_y > (PLAYER_HEIGHT / 2))
-            player1_y -= player_speed;
-    }
+	// exit
+	if (key_states[27]) {
+		exit(0);
+	}
 
-    // player 2
-    if (special_states[GLUT_KEY_UP]) {
-        if (player2_y < WINDOW_HEIGHT - (PLAYER_HEIGHT / 2))
-            player2_y += player_speed;
-    }
-    if (special_states[GLUT_KEY_DOWN]) {
-        if (player2_y > (PLAYER_HEIGHT / 2))
-            player2_y -= player_speed;
-    }
-    glutPostRedisplay();
+	// player 1
+	if (key_states['w'] || key_states['W']) {
+		if (player1_y < WINDOW_HEIGHT - (PLAYER_HEIGHT / 2))
+			player1_y += player_speed;
+	}
+	if (key_states['s'] || key_states['S']) {
+		if (player1_y > (PLAYER_HEIGHT / 2))
+			player1_y -= player_speed;
+	}
+
+	// player 2
+	if (special_states[GLUT_KEY_UP]) {
+		if (player2_y < WINDOW_HEIGHT - (PLAYER_HEIGHT / 2))
+			player2_y += player_speed;
+	}
+	if (special_states[GLUT_KEY_DOWN]) {
+		if (player2_y > (PLAYER_HEIGHT / 2))
+			player2_y -= player_speed;
+	}
+
+	update_ball();
+	glutPostRedisplay();
+}
+
+void update_ball()
+{
+	if (!game_started) return;
+
+	ball_x += ball_speed_x;
+	ball_y += ball_speed_y;
+
+	// floor and ceiling collisions
+	if (ball_y + ball_radius > WINDOW_HEIGHT) {
+		ball_y = WINDOW_HEIGHT - ball_radius;
+		ball_speed_y = -ball_speed_y;
+	} else if (ball_y - ball_radius < 0) {
+		ball_y = ball_radius;
+		ball_speed_y = -ball_speed_y;
+	}
+
+	// left player collision
+	if (ball_x - ball_radius < PLAYER_OFFSET + PLAYER_WIDTH
+            && ball_x - ball_radius > PLAYER_OFFSET
+            && ball_y > player1_y - PLAYER_HEIGHT/2
+            && ball_y < player1_y + PLAYER_HEIGHT/2) {
+
+		ball_x = PLAYER_OFFSET + PLAYER_WIDTH + ball_radius;
+		ball_speed_x = -ball_speed_x + ball_acceleration;
+
+		// change vertical speed depending on where the ball hits
+		float intersect_y = (player1_y - ball_y) / (PLAYER_HEIGHT / 2);
+		ball_speed_y = intersect_y * -5.0f;
+	}
+
+	// right player collision
+	if (ball_x + ball_radius > WINDOW_WIDTH - PLAYER_OFFSET - PLAYER_WIDTH
+            && ball_x + ball_radius < WINDOW_WIDTH - PLAYER_OFFSET
+            && ball_y > player2_y - PLAYER_HEIGHT/2
+            && ball_y < player2_y + PLAYER_HEIGHT/2) {
+
+		ball_x = WINDOW_WIDTH - PLAYER_OFFSET - PLAYER_WIDTH - ball_radius;
+		ball_speed_x = -ball_speed_x - ball_acceleration;;
+
+		// change vertical speed depending on where the ball hits
+		float intersect_y = (player2_y - ball_y) / (PLAYER_HEIGHT/2);
+		ball_speed_y = intersect_y * -5.0f;
+	}
+
+	// out of bounds
+	if (ball_x + ball_radius > WINDOW_WIDTH) {
+		player1_score++;
+		reset_ball(true);
+	} else if (ball_x - ball_radius < 0) {
+		player2_score++;
+		reset_ball(false);
+	}
+}
+
+void reset_ball(bool move_left)
+{
+	ball_x = WINDOW_WIDTH / 2;
+	ball_y = WINDOW_HEIGHT / 2;
+	ball_speed_x = move_left ? -3.0f : 3.0f; // move away from point winner
+	ball_speed_y = (rand() % 3 - 1) * 2.0f; // random y direction
+	game_started = false;
+	glutTimerFunc(1000, start_game, 0); // start after waiting 1 second
+}
+
+
+// used in a delayed callback
+void start_game(int value)
+{
+	game_started = true;
 }
 
 // normal keys
@@ -155,18 +245,18 @@ void key_released(unsigned char key, int x, int y)
 
 // special keys (function keys, arrow keys, space, etc.)
 void special_pressed(int key, int x, int y) {
-    special_states[key] = true;
-    glutPostRedisplay();
+	special_states[key] = true;
+	glutPostRedisplay();
 }
 
 void special_released(int key, int x, int y) {
-    special_states[key] = false;
+	special_states[key] = false;
 }
 
 // consistent timestep of 16ms ~ 60fps
 void timer(int value) {
-    update_game();
-    glutTimerFunc(16, timer, 0);
+	update_game();
+	glutTimerFunc(16, timer, 0);
 }
 
 void reshape(int w, int h)
