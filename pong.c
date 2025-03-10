@@ -3,16 +3,23 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+// display constants
 const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 600;
 const float ASPECT_RATIO = (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT;
 
+// player constants
+const float PLAYER_WIDTH = 10.0f;
+const float PLAYER_HEIGHT = 80.0f;
+const float PLAYER_OFFSET = 20.0f;
+
 // ball
+const float ball_radius = 8.0f;
 float ball_x = WINDOW_WIDTH / 2;
 float ball_y = WINDOW_HEIGHT / 2;
-float ball_radius = 8.0f;
 
 // players
+const float player_speed = 5.0f;
 float player1_y = WINDOW_HEIGHT / 2;
 float player2_y = WINDOW_HEIGHT / 2;
 
@@ -62,8 +69,8 @@ void display()
 {
 	glClear(GL_COLOR_BUFFER_BIT);
 	draw_ball(ball_x, ball_y, ball_radius, 100);
-	draw_player(20, player1_y);
-	draw_player(WINDOW_WIDTH - 30, player2_y); // account for player width
+	draw_player(PLAYER_OFFSET, player1_y);
+	draw_player(WINDOW_WIDTH - PLAYER_OFFSET - PLAYER_WIDTH, player2_y);
 	glFlush();
 }
 
@@ -87,14 +94,12 @@ void draw_ball(float pos_x, float pos_y, float radius, int segments)
 
 void draw_player(float pos_x, float pos_y)
 {
-	const float player_width = 10.0f;
-	const float player_height = 80.0f;
 	glBegin(GL_QUADS);
 	glColor3f(1.0f, 1.0f, 1.0f);
-	glVertex2f(pos_x, pos_y + player_height / 2);
-	glVertex2f(pos_x + player_width, pos_y + player_height / 2);
-	glVertex2f(pos_x + player_width, pos_y - player_height / 2);
-	glVertex2f(pos_x, pos_y - player_height / 2);
+	glVertex2f(pos_x, pos_y + PLAYER_HEIGHT / 2);
+	glVertex2f(pos_x + PLAYER_WIDTH, pos_y + PLAYER_HEIGHT / 2);
+	glVertex2f(pos_x + PLAYER_WIDTH, pos_y - PLAYER_HEIGHT / 2);
+	glVertex2f(pos_x, pos_y - PLAYER_HEIGHT / 2);
 	glEnd();
 }
 
