@@ -27,10 +27,15 @@ float player2_y = WINDOW_HEIGHT / 2;
 bool key_states[256] = {false};
 bool special_states[256] = {false};
 
+// scores
+int player1_score = 0;
+int player2_score = 0;
+
 void initialize(void);
 void display();
 void draw_ball(float pos_x, float pos_y, float radius, int segments);
 void draw_player(float pos_x, float pos_y);
+void draw_score();
 void update_game();
 void key_pressed(unsigned char key, int x, int y);
 void key_released(unsigned char key, int x, int y);
@@ -71,6 +76,7 @@ void display()
 	draw_ball(ball_x, ball_y, ball_radius, 100);
 	draw_player(PLAYER_OFFSET, player1_y);
 	draw_player(WINDOW_WIDTH - PLAYER_OFFSET - PLAYER_WIDTH, player2_y);
+	draw_score();
 	glFlush();
 }
 
@@ -101,6 +107,15 @@ void draw_player(float pos_x, float pos_y)
 	glVertex2f(pos_x + PLAYER_WIDTH, pos_y - PLAYER_HEIGHT / 2);
 	glVertex2f(pos_x, pos_y - PLAYER_HEIGHT / 2);
 	glEnd();
+}
+
+void draw_score() {
+    char score_text[20];
+    sprintf(score_text, "%d : %d", player1_score, player2_score);
+    glColor3f(1.0, 1.0, 1.0);
+    glRasterPos2f(WINDOW_WIDTH/2 - 20, WINDOW_HEIGHT - 20);
+    for (char* c = score_text; *c != '\0'; c++)
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *c);
 }
 
 void update_game() {
