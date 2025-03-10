@@ -1,5 +1,6 @@
 #include <GL/glut.h>
 #include <math.h>
+#include <stdbool.h>
 #include <stdio.h>
 
 const int WINDOW_WIDTH = 800;
@@ -15,10 +16,20 @@ float ball_radius = 8.0f;
 float player1_y = WINDOW_HEIGHT / 2;
 float player2_y = WINDOW_HEIGHT / 2;
 
+// input state
+bool key_states[256] = {false};
+bool special_states[256] = {false};
+
 void initialize(void);
-void draw_player(float pos_x, float pos_y);
-void draw_ball(float pos_x, float pos_y, float radius, int segments);
 void display();
+void draw_ball(float pos_x, float pos_y, float radius, int segments);
+void draw_player(float pos_x, float pos_y);
+void update_game();
+void key_pressed(unsigned char key, int x, int y);
+void key_released(unsigned char key, int x, int y);
+void special_pressed(int key, int x, int y);
+void special_released(int key, int x, int y);
+void timer(int step);
 void reshape(int w, int h);
 
 int main(int argc, char *argv[])
@@ -32,6 +43,11 @@ int main(int argc, char *argv[])
 	initialize();
 	glutDisplayFunc(display);
 	glutReshapeFunc(reshape);
+	glutKeyboardFunc(key_pressed);
+	glutKeyboardUpFunc(key_released);
+	glutSpecialFunc(special_pressed);
+	glutSpecialUpFunc(special_released);
+	glutTimerFunc(16, timer, 0);
 	glutMainLoop();
 	return 0;
 }
@@ -80,6 +96,57 @@ void draw_player(float pos_x, float pos_y)
 	glVertex2f(pos_x + player_width, pos_y - player_height / 2);
 	glVertex2f(pos_x, pos_y - player_height / 2);
 	glEnd();
+}
+
+void update_game() {
+    // player 1
+    if (key_states['w'] || key_states['W']) {
+        if (player1_y < WINDOW_HEIGHT - (PLAYER_HEIGHT / 2))
+            player1_y += player_speed;
+    }
+    if (key_states['s'] || key_states['S']) {
+        if (player1_y > (PLAYER_HEIGHT / 2))
+            player1_y -= player_speed;
+    }
+
+    // player 2
+    if (special_states[GLUT_KEY_UP]) {
+        if (player2_y < WINDOW_HEIGHT - (PLAYER_HEIGHT / 2))
+            player2_y += player_speed;
+    }
+    if (special_states[GLUT_KEY_DOWN]) {
+        if (player2_y > (PLAYER_HEIGHT / 2))
+            player2_y -= player_speed;
+    }
+    glutPostRedisplay();
+}
+
+// normal keys
+void key_pressed(unsigned char key, int x, int y)
+{
+	key_states[key] = true;
+	glutPostRedisplay();
+}
+
+void key_released(unsigned char key, int x, int y)
+{
+	key_states[key] = false;
+}
+
+// special keys (function keys, arrow keys, space, etc.)
+void special_pressed(int key, int x, int y) {
+    special_states[key] = true;
+    glutPostRedisplay();
+}
+
+void special_released(int key, int x, int y) {
+    special_states[key] = false;
+}
+
+// consistent timestep of 16ms ~ 60fps
+void timer(int value) {
+    update_game();
+    glutTimerFunc(16, timer, 0);
 }
 
 void reshape(int w, int h)
