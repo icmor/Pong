@@ -19,8 +19,8 @@ const float PLAYER_OFFSET = 20.0f;
 const float ball_radius = 8.0f;
 float ball_x = WINDOW_WIDTH / 2;
 float ball_y = WINDOW_HEIGHT / 2;
-float ball_speed_x = 4.0f;
-float ball_speed_y = 4.0f;
+float ball_speed_x = 6.0f;
+float ball_speed_y = 6.0f;
 float ball_acceleration = 0.2f;
 
 // players
@@ -45,7 +45,7 @@ void draw_player(float pos_x, float pos_y);
 void draw_score();
 void update_game();
 void update_ball();
-void reset_ball(bool move_left);
+void reset_ball();
 void start_game(int value);
 void key_pressed(unsigned char key, int x, int y);
 void key_released(unsigned char key, int x, int y);
@@ -207,19 +207,22 @@ void update_ball()
 	// out of bounds
 	if (ball_x + ball_radius > WINDOW_WIDTH) {
 		player1_score++;
-		reset_ball(true);
+		reset_ball();
 	} else if (ball_x - ball_radius < 0) {
 		player2_score++;
-		reset_ball(false);
+		reset_ball();
 	}
 }
 
-void reset_ball(bool move_left)
+void reset_ball()
 {
 	ball_x = WINDOW_WIDTH / 2;
 	ball_y = WINDOW_HEIGHT / 2;
-	ball_speed_x = move_left ? -3.0f : 3.0f; // move away from point winner
-	ball_speed_y = (rand() % 3 - 1) * 2.0f; // random y direction
+	// move towards point winner
+	ball_speed_x = -ball_speed_x;
+	printf("%f\n", ball_speed_x);
+	// random y direction
+	ball_speed_y = (rand() % 2 - 1) * ball_speed_y;
 	game_started = false;
 	glutTimerFunc(1000, start_game, 0); // start after waiting 1 second
 }
